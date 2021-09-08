@@ -5,11 +5,23 @@
   </head>
   <body>
     <h1>Unrar.js demo</h1>
-    <div id="drop-zone">Drop a RAR file here</div>
+    <div id="drop-zone">Drop a RAR file here 摆放RAR压缩包到这里<br>support RAR4 支持RAR4,不支持最新的RAR标准,已对简体中文乱码文件进行了映射.</div>
+    <input value="上传" type="button" id="upload">
     <div id="output">
       <ul></ul>
     </div>
+    <pre>
+      <code>
 
+        unrar = new Unrar(Uint8ArrayBuf);
+        unrar.list.forEach(
+          v=>{
+            let fileBuf = unrar.decompress(v.name);
+          }
+          );
+
+      </code>
+    </pre>
     <style>
       #drop-zone {
       border: 2px dashed rgb(187, 187, 187);
@@ -22,7 +34,48 @@
     <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
     <script src="./unrar.min.js"></script>
     <script>
+
 $(function () {
+  up = (file)=>{
+    var reader = new FileReader();
+    reader.onload = (function (theFile) {
+      return function (e) {
+         var data = e.target.result;
+         if (unrar !== null) { unrar.close(); }
+         unrar = new Unrar(data);
+         var fragment = document.createDocumentFragment();
+         unrar.files.forEach(data => {
+           (function (name) {
+         console.log(name);
+             var li = document.createElement('li');
+             var a = '<a href="#">' + (name) + '</a>';
+             li.innerHTML = a;
+             fragment.appendChild(li);
+             $(li).children().on('click', function () {
+                var data = unrar.decompress(name);
+                var blob = new Blob([data],{type: "application/binary"});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.download = name.split('\\').pop();
+                a.href = url;
+                a.target = '_blank';
+                var event = new MouseEvent('click', {
+                  'view': window,
+                  'bubbles': true,
+                  'cancelable': true
+                });
+                a.dispatchEvent(event);
+             });
+           })(data.name);
+
+           
+         });
+         
+         $('#output ul').html(fragment);
+      };
+    })(file);
+    reader.readAsArrayBuffer(file);
+  }
   var dropzone = $('#drop-zone');
   dropzone.on('dragover', function (jqEvent) {
     var event = jqEvent.originalEvent;
@@ -39,42 +92,15 @@ $(function () {
     var files = event.dataTransfer.files
     if (files.length === 0) { return; }
     var file = files[0];
-
-    var reader = new FileReader();
-    reader.onload = (function (theFile) {
-      return function (e) {
-         var data = e.target.result;
-         if (unrar !== null) { unrar.close(); }
-         unrar = new Unrar(data);
-         var entries = unrar.getEntries();
-         var fragment = document.createDocumentFragment();
-         for (var i = 0, len = entries.length; i < len; ++i) {
-           (function (name) {
-             var li = document.createElement('li');
-             var a = '<a href="#">' + escape(name) + '</a>';
-             li.innerHTML = a;
-             fragment.appendChild(li);
-             $(li).children().on('click', function () {
-                var data = unrar.decompress(name);
-                var blob = new Blob([data]);
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.download = name;
-                a.href = url;
-                a.target = '_blank';
-                var event = new MouseEvent('click', {
-                  'view': window,
-                  'bubbles': true,
-                  'cancelable': true
-                });
-                a.dispatchEvent(event);
-             });
-           })(entries[i].name);
-         }
-         $('#output ul').html(fragment);
-      };
-    })(file);
-    reader.readAsArrayBuffer(file);
+    up(file);
+  });
+  let i = document.createElement('input');
+  i.type = 'file';
+  $('#upload').on('click tap',function (){
+    $(i).click();
+  });
+  $(i).on('change',function(){
+    up(this.files[0]);
   });
 });
     </script>
